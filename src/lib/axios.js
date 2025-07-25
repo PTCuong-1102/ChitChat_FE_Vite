@@ -1,8 +1,16 @@
 import axios from "axios";
 
+// SỬA LỖI: Force production URL to ensure it works
 const API_BASE_URL = import.meta.env.MODE === "development" 
   ? "http://localhost:5002/api" 
-  : import.meta.env.VITE_API_URL || "https://chitchatbeexpressjs-production.up.railway.app/api";
+  : "https://chitchatbeexpressjs-production.up.railway.app/api";
+
+// SỬA LỖI: Add debugging for production issues
+console.log("Axios configuration:", {
+  mode: import.meta.env.MODE,
+  viteApiUrl: import.meta.env.VITE_API_URL,
+  finalBaseUrl: API_BASE_URL
+});
 
 export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -13,6 +21,14 @@ export const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
+    // SỬA LỖI: Add debugging for request URLs
+    console.log("Making request:", {
+      method: config.method,
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`
+    });
+    
     // Thêm timestamp để prevent caching
     config.metadata = { startTime: new Date() };
     return config;

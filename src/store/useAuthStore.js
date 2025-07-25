@@ -3,9 +3,10 @@ import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
+// SỬA LỖI: Force production URL to ensure it works
 const BASE_URL = import.meta.env.MODE === "development" 
   ? "http://localhost:5002" 
-  : import.meta.env.VITE_SOCKET_URL || "https://chitchatbeexpressjs-production.up.railway.app";
+  : "https://chitchatbeexpressjs-production.up.railway.app";
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -47,13 +48,19 @@ export const useAuthStore = create((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
+      console.log("Attempting login with data:", data);
+      console.log("Using socket URL:", BASE_URL);
+      
       const res = await axiosInstance.post("/auth/login", data);
+      console.log("Login successful:", res.data);
+      
       set({ authUser: res.data });
       toast.success("Logged in successfully");
 
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      console.error("Login error:", error);
+      toast.error(error.response?.data?.message || error.message);
     } finally {
       set({ isLoggingIn: false });
     }
