@@ -3,6 +3,6 @@ import axios from "axios";
 export const axiosInstance = axios.create({
   baseURL: import.meta.env.MODE === "development" 
     ? "http://localhost:5002/api" 
-    : import.meta.env.VITE_API_URL || "https://chitchat-be-express-js.onrender.com/api",
+    : import.meta.env.VITE_API_URL || "https://chitchat_be_express-js.railway.internal/api",
   withCredentials: true,
 });
