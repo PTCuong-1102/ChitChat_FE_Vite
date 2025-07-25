@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 
 const BASE_URL = import.meta.env.MODE === "development" 
   ? "http://localhost:5002" 
-  : import.meta.env.VITE_API_URL || window.location.origin;
+  : import.meta.env.VITE_SOCKET_URL || "https://chitchat-be-express-js.onrender.com";
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
