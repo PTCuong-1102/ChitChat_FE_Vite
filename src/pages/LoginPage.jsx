@@ -14,6 +14,25 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // SỬA LỖI: Add debugging for form submission
+    console.log("Form submitted with data:", formData);
+    console.log("Email:", formData.email);
+    console.log("Password:", formData.password);
+    console.log("Password length:", formData.password.length);
+    
+    // Validate data before sending
+    if (!formData.email || !formData.password) {
+      console.error("Missing email or password");
+      return;
+    }
+    
+    if (!formData.email.includes('@')) {
+      console.error("Invalid email format");
+      return;
+    }
+    
+    console.log("Calling login function...");
     login(formData);
   };
 
