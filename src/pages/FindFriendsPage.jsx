@@ -86,10 +86,10 @@ const FindFriendsPage = () => {
                 <span className="loading loading-spinner loading-lg"></span>
               </div>
             ) : searchQuery.length >= 2 ? (
-              searchResults.length > 0 ? (
+              (searchResults || []).length > 0 ? (
                 <div className="space-y-3">
                   <h3 className="font-medium text-lg mb-4">Search Results</h3>
-                  {searchResults.map((user) => (
+                  {(searchResults || []).map((user) => (
                     <div
                       key={user._id}
                       className="flex items-center justify-between p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"

@@ -43,9 +43,10 @@ const Sidebar = () => {
     }
   }, [activeTab, getContacts, getUsers, getChatbots, getConversations]);
 
-  const displayUsers = activeTab === "contacts" ? contacts : users;
+  // SỬA LỖI: Add fallbacks to prevent .map() errors
+  const displayUsers = activeTab === "contacts" ? (contacts || []) : (users || []);
   const filteredUsers = showOnlineOnly
-    ? displayUsers.filter((user) => onlineUsers.includes(user._id))
+    ? displayUsers.filter((user) => (onlineUsers || []).includes(user._id))
     : displayUsers;
 
   const isLoading = activeTab === "contacts" ? isContactsLoading : 
@@ -136,7 +137,7 @@ const Sidebar = () => {
               />
               <span className="text-sm">Show online only</span>
             </label>
-            <span className="text-xs text-zinc-500">({Math.max(0, onlineUsers.length - 1)} online)</span>
+            <span className="text-xs text-zinc-500">({Math.max(0, (onlineUsers || []).length - 1)} online)</span>
           </div>
         )}
       </div>
@@ -144,7 +145,7 @@ const Sidebar = () => {
       <div className="overflow-y-auto w-full py-3">
         {activeTab === "conversations" ? (
           <>
-            {conversations.map((conversation) => {
+            {(conversations || []).map((conversation) => {
               const { authUser } = useAuthStore.getState();
               
               // Determine conversation display info
@@ -153,13 +154,13 @@ const Sidebar = () => {
               if (conversation.isGroupChat) {
                 conversationName = conversation.name || "Unnamed Group";
                 conversationAvatar = conversation.groupIcon;
-                conversationStatus = `${conversation.participants.length} members`;
+                conversationStatus = `${(conversation.participants || []).length} members`;
               } else {
-                const otherUser = conversation.participants.find(p => p._id !== authUser._id);
+                const otherUser = (conversation.participants || []).find(p => p._id !== authUser._id);
                 if (otherUser) {
                   conversationName = otherUser.fullName;
                   conversationAvatar = otherUser.profilePic;
-                  conversationStatus = onlineUsers.includes(otherUser._id) ? "Online" : "Offline";
+                  conversationStatus = (onlineUsers || []).includes(otherUser._id) ? "Online" : "Offline";
                 } else {
                   conversationName = "Deleted User";
                   conversationAvatar = null;
@@ -210,7 +211,7 @@ const Sidebar = () => {
               );
             })}
 
-            {conversations.length === 0 && (
+            {(conversations || []).length === 0 && (
               <div className="text-center text-zinc-500 py-4">
                 <MessageCircle className="size-8 mx-auto mb-2 opacity-50" />
                 No conversations yet
@@ -235,7 +236,7 @@ const Sidebar = () => {
                     alt={user.name}
                     className="size-12 object-cover rounded-full"
                   />
-                  {onlineUsers.includes(user._id) && (
+                  {(onlineUsers || []).includes(user._id) && (
                     <span
                       className="absolute bottom-0 right-0 size-3 bg-green-500 
                       rounded-full ring-2 ring-zinc-900"
@@ -247,7 +248,7 @@ const Sidebar = () => {
                 <div className="hidden lg:block text-left min-w-0">
                   <div className="font-medium truncate">{user.fullName}</div>
                   <div className="text-sm text-zinc-400">
-                    {onlineUsers.includes(user._id) ? "Online" : "Offline"}
+                    {(onlineUsers || []).includes(user._id) ? "Online" : "Offline"}
                   </div>
                 </div>
               </button>
@@ -261,7 +262,7 @@ const Sidebar = () => {
           </>
         ) : (
           <>
-            {chatbots.map((chatbot) => (
+            {(chatbots || []).map((chatbot) => (
               <button
                 key={chatbot._id}
                 onClick={() => setSelectedContact(chatbot, "chatbot")}
@@ -292,7 +293,7 @@ const Sidebar = () => {
               </button>
             ))}
 
-            {chatbots.length === 0 && (
+            {(chatbots || []).length === 0 && (
               <div className="text-center text-zinc-500 py-4">
                 <Bot className="size-8 mx-auto mb-2 opacity-50" />
                 No chatbots available

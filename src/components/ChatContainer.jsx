@@ -220,7 +220,7 @@ const ChatContainer = () => {
       </ErrorBoundary>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {Array.isArray(messages) && messages.map((message, index) => {
+        {(messages || []).map((message, index) => {
           try {
             // Safe handling of message data
             if (!message || !message._id) {

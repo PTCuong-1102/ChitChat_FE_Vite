@@ -169,7 +169,7 @@ const ChatbotManagerPage = () => {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {chatbots.map((chatbot) => (
+              {(chatbots || []).map((chatbot) => (
                 <div key={chatbot._id} className="card bg-base-200 shadow-lg">
                   <div className="card-body">
                     <div className="flex items-center gap-3 mb-2">

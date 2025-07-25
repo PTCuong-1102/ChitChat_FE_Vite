@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 
 const BASE_URL = import.meta.env.MODE === "development" 
   ? "http://localhost:5002" 
-  : import.meta.env.VITE_SOCKET_URL || "https://chitchat_be_express-js.railway.internal";
+  : import.meta.env.VITE_SOCKET_URL || "https://chitchatbeexpressjs-production.up.railway.app";
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,

@@ -11,7 +11,7 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
   const { contacts, getContacts, createConversation, setSelectedConversation } = useChatStore();
 
   useEffect(() => {
-    if (isOpen && contacts.length === 0) {
+    if (isOpen && (contacts || []).length === 0) {
       getContacts();
     }
   }, [isOpen, contacts.length, getContacts]);
@@ -30,14 +30,14 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (selectedUsers.length < 1) {
+    if ((selectedUsers || []).length < 1) {
       toast.error("Please select at least one member");
       return;
     }
 
     setIsLoading(true);
     try {
-      const participantIds = selectedUsers.map(user => user._id);
+      const participantIds = (selectedUsers || []).map(user => user._id);
       const conversation = await createConversation(participantIds, groupName.trim(), true);
       setSelectedConversation(conversation);
       toast.success("Group created successfully!");
@@ -98,10 +98,10 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
           {/* Members Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">
-              Select Members ({selectedUsers.length} selected)
+              Select Members ({(selectedUsers || []).length} selected)
             </label>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {contacts.map((user) => (
+              {(contacts || []).map((user) => (
                 <label
                   key={user._id}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-200 cursor-pointer"
@@ -135,11 +135,11 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Selected Users Preview */}
-          {selectedUsers.length > 0 && (
+          {(selectedUsers || []).length > 0 && (
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Selected Members</label>
               <div className="flex flex-wrap gap-2">
-                {selectedUsers.map((user) => (
+                {(selectedUsers || []).map((user) => (
                   <div
                     key={user._id}
                     className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs"

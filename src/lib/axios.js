@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_BASE_URL = import.meta.env.MODE === "development" 
   ? "http://localhost:5002/api" 
-  : "/api";
+  : import.meta.env.VITE_API_URL || "https://chitchatbeexpressjs-production.up.railway.app/api";
 
 export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
