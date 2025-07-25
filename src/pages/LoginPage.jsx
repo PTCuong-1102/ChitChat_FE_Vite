@@ -123,6 +123,23 @@ const LoginPage = () => {
                 Create account
               </Link>
             </p>
+            
+            {/* SỬA LỖI: Add test credentials info for demo */}
+            <div className="mt-4 p-3 bg-info/10 rounded-lg">
+              <p className="text-sm text-info font-medium">Demo Credentials:</p>
+              <p className="text-xs text-info/80">Email: test@example.com</p>
+              <p className="text-xs text-info/80">Password: 123456</p>
+              <p className="text-xs text-info/60 mt-1">
+                <a 
+                  href="https://chitchatbeexpressjs-production.up.railway.app/api/dev/fix-login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link link-info"
+                >
+                  Click here to activate demo account
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>
