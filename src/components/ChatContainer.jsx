@@ -1,6 +1,10 @@
 import { useChatStore } from "../store/useChatStore";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import DOMPurify from 'dompurify';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
@@ -10,27 +14,25 @@ import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
 import { Bot } from "lucide-react";
 
-// Safe Markdown component with error handling
+// Safe Markdown component với XSS protection
 const SafeMarkdown = ({ text }) => {
-  // TEMPORARY: Disable markdown completely to test if it's the issue
-  const DISABLE_MARKDOWN = true;
-  
-  if (DISABLE_MARKDOWN) {
-    console.log("Markdown disabled, showing plain text:", text?.substring(0, 50) + "...");
-    return <p className="whitespace-pre-wrap">{text}</p>;
-  }
-
   try {
-    console.log("Rendering markdown for text:", text?.substring(0, 100) + "...");
-    
     // Validate input
     if (!text || typeof text !== 'string') {
       console.warn("Invalid text for markdown:", text);
       return <p>{text || ""}</p>;
     }
 
-    // Sanitize text to prevent issues
-    const sanitizedText = text.trim();
+    // SỬA LỖI: Sanitize input trước khi render markdown
+    const sanitizedText = DOMPurify.sanitize(text.trim(), {
+      // Chỉ cho phép safe HTML tags
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote'],
+      ALLOWED_ATTR: [],
+      // Remove scripts và các attributes nguy hiểm
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'style']
+    });
+
     if (sanitizedText === '') {
       return null;
     }
@@ -38,8 +40,9 @@ const SafeMarkdown = ({ text }) => {
     return (
       <ReactMarkdown 
         className="prose prose-sm max-w-none text-white"
+        remarkPlugins={[remarkGfm]}
         components={{
-          // Override components to prevent crashes
+          // Custom components với security
           h1: ({children}) => <h1 className="text-lg font-bold">{children}</h1>,
           h2: ({children}) => <h2 className="text-md font-bold">{children}</h2>,
           h3: ({children}) => <h3 className="text-sm font-bold">{children}</h3>,
@@ -49,8 +52,31 @@ const SafeMarkdown = ({ text }) => {
           ul: ({children}) => <ul className="list-disc list-inside">{children}</ul>,
           ol: ({children}) => <ol className="list-decimal list-inside">{children}</ol>,
           li: ({children}) => <li>{children}</li>,
-          code: ({children}) => <code className="bg-gray-700 px-1 rounded">{children}</code>,
-          pre: ({children}) => <pre className="bg-gray-700 p-2 rounded overflow-x-auto">{children}</pre>
+          code: ({node, inline, className, children, ...props}) => {
+            const match = /language-(\w+)/.exec(className || '');
+            return !inline && match ? (
+              <SyntaxHighlighter
+                style={tomorrow}
+                language={match[1]}
+                PreTag="div"
+                {...props}
+              >
+                {String(children).replace(/\n$/, '')}
+              </SyntaxHighlighter>
+            ) : (
+              <code className="bg-gray-700 px-1 rounded" {...props}>
+                {children}
+              </code>
+            );
+          },
+          // Block dangerous elements
+          script: () => null,
+          iframe: () => null,
+          object: () => null,
+          embed: () => null,
+          form: () => null,
+          input: () => null,
+          button: () => null,
         }}
       >
         {sanitizedText}
@@ -58,8 +84,8 @@ const SafeMarkdown = ({ text }) => {
     );
   } catch (error) {
     console.error("Error in SafeMarkdown:", error, "Text:", text);
-    // Fallback to plain text
-    return <p className="text-red-200">⚠️ {text}</p>;
+    // Fallback to safe plain text
+    return <p className="text-red-200">⚠️ Content could not be displayed safely</p>;
   }
 };
 
@@ -124,14 +150,34 @@ const ChatContainer = () => {
     });
     
     try {
+      // SỬA LỖI: Always unsubscribe first để tránh duplicate listeners
+      unsubscribeFromMessages();
+      
       if (selectedConversation?._id) {
         console.log("Calling getMessages for conversation:", selectedConversation._id);
-        getMessages(selectedConversation._id);
-        subscribeToMessages();
+        getMessages(selectedConversation._id)
+          .then(() => {
+            // SỬA LỖI: Subscribe immediately after messages are loaded
+            console.log("Messages loaded, subscribing to socket events");
+            subscribeToMessages();
+          })
+          .catch((error) => {
+            console.error("Error loading messages:", error);
+            // Still subscribe even if messages fail to load
+            subscribeToMessages();
+          });
       } else if (selectedContact?._id && contactType === "chatbot") {
         console.log("Calling getChatbotMessages for chatbot:", selectedContact._id);
-        getChatbotMessages(selectedContact._id);
-        subscribeToMessages();
+        getChatbotMessages(selectedContact._id)
+          .then(() => {
+            console.log("Chatbot messages loaded, subscribing to socket events");
+            subscribeToMessages();
+          })
+          .catch((error) => {
+            console.error("Error loading chatbot messages:", error);
+            // Still subscribe even if messages fail to load
+            subscribeToMessages();
+          });
       }
     } catch (error) {
       console.error("Error in ChatContainer useEffect:", error);
@@ -144,7 +190,7 @@ const ChatContainer = () => {
         console.error("Error in unsubscribeFromMessages:", error);
       }
     };
-  }, [selectedConversation?._id, selectedContact?._id, contactType, getMessages, getChatbotMessages, subscribeToMessages, unsubscribeFromMessages]);
+  }, [selectedConversation?._id, selectedContact?._id, contactType]);
 
   useEffect(() => {
     try {

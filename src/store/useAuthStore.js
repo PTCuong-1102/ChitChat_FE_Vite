@@ -85,23 +85,76 @@ export const useAuthStore = create((set, get) => ({
   },
 
   connectSocket: () => {
-    const { authUser } = get();
-    if (!authUser || get().socket?.connected) return;
+    const { authUser, socket } = get();
+    if (!authUser || socket?.connected) return;
 
-    const socket = io(BASE_URL, {
+    console.log("Connecting socket for user:", authUser.fullName, "ID:", authUser._id);
+
+    const newSocket = io(BASE_URL, {
       query: {
         userId: authUser._id,
       },
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
-    socket.connect();
 
-    set({ socket: socket });
+    set({ socket: newSocket });
 
-    socket.on("getOnlineUsers", (userIds) => {
+    // SỬA LỖI: Cleanup existing listeners trước khi add new ones
+    newSocket.removeAllListeners();
+
+    newSocket.on("getOnlineUsers", (userIds) => {
+      console.log("Received online users:", userIds);
       set({ onlineUsers: userIds });
     });
+
+    newSocket.on("connect", () => {
+      console.log("Socket connected successfully!");
+    });
+
+    newSocket.on("disconnect", (reason) => {
+      console.log("Socket disconnected:", reason);
+      set({ onlineUsers: [] });
+    });
+
+    newSocket.on("error", (error) => {
+      console.error("Socket error:", error);
+      toast.error("Connection error occurred");
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
   },
+
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
+    const { socket } = get();
+    if (socket?.connected) {
+      // SỬA LỖI: Cleanup tất cả listeners trước khi disconnect
+      socket.removeAllListeners();
+      socket.disconnect();
+      set({ socket: null, onlineUsers: [] });
+    }
   },
+
+  // Thêm method cleanup manual nếu cần
+  cleanupSocket: () => {
+    const { socket } = get();
+    if (socket) {
+      socket.removeAllListeners();
+      if (socket.connected) {
+        socket.disconnect();
+      }
+      set({ socket: null, onlineUsers: [] });
+    }
+  }
 }));
+
+// Thêm cleanup khi browser/tab đóng
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    useAuthStore.getState().cleanupSocket();
+  });
+}

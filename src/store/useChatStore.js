@@ -71,8 +71,10 @@ export const useChatStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get(`/messages/${conversationId}`);
       set({ messages: res.data });
+      return res.data;
     } catch (error) {
       toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to fetch messages");
+      throw error;
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -86,11 +88,15 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(`/chatbots/messages/${chatbotId}`);
       console.log("API response:", res.data);
       console.log("Setting messages in store:", res.data || []);
-      set({ messages: res.data || [] });
+      const messages = res.data || [];
+      set({ messages });
+      return messages;
     } catch (error) {
       console.error("Error in getChatbotMessages:", error);
       // If no messages endpoint for chatbot, just start with empty messages
-      set({ messages: [] });
+      const messages = [];
+      set({ messages });
+      return messages;
     } finally {
       console.log("getChatbotMessages finished, setting loading to false");
       set({ isMessagesLoading: false });
@@ -163,31 +169,60 @@ export const useChatStore = create((set, get) => ({
 
   subscribeToMessages: () => {
     const { selectedConversation, selectedContact, contactType } = get();
-    if (!selectedConversation && !selectedContact) return;
-
+    
     const socket = useAuthStore.getState().socket;
+    if (!socket) {
+      console.warn("Socket not available for subscription");
+      return;
+    }
 
-    socket.on("newMessage", (newMessage) => {
-      let isMessageFromSelectedConversation = false;
+    // SỬA LỖI: Remove existing listeners first để tránh duplicate
+    socket.off("newMessage");
+
+    const handleNewMessage = (newMessage) => {
+      console.log("Received newMessage:", newMessage);
       
-      if (contactType === "user" && selectedConversation) {
-        isMessageFromSelectedConversation = newMessage.conversationId === selectedConversation._id;
-      } else if (contactType === "chatbot" && selectedContact) {
-        isMessageFromSelectedConversation = 
-          newMessage.senderId === selectedContact._id || newMessage.receiverId === selectedContact._id;
+      // SỬA LỖI: Always add message if it's new, don't filter by conversation yet
+      const currentMessages = get().messages;
+      const messageExists = currentMessages.some(msg => msg._id === newMessage._id);
+      
+      if (!messageExists) {
+        // Check if message belongs to current conversation
+        const currentState = get();
+        let isRelevantMessage = false;
+        
+        if (currentState.contactType === "user" && currentState.selectedConversation) {
+          isRelevantMessage = newMessage.conversationId === currentState.selectedConversation._id;
+        } else if (currentState.contactType === "chatbot" && currentState.selectedContact) {
+          isRelevantMessage = 
+            newMessage.senderId === currentState.selectedContact._id || 
+            newMessage.receiverId === currentState.selectedContact._id;
+        }
+        
+        if (isRelevantMessage) {
+          console.log("Adding message to state for current conversation");
+          set({
+            messages: [...currentMessages, newMessage],
+          });
+        } else {
+          console.log("Message not for current conversation, storing for later");
+          // Store message for when user switches to that conversation
+        }
+      } else {
+        console.log("Message already exists, skipping");
       }
-      
-      if (!isMessageFromSelectedConversation) return;
+    };
 
-      set({
-        messages: [...get().messages, newMessage],
-      });
-    });
+    socket.on("newMessage", handleNewMessage);
+    console.log("Subscribed to newMessage events for:", selectedConversation?._id || selectedContact?._id);
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+    if (socket) {
+      socket.off("newMessage");
+      console.log("Unsubscribed from newMessage events");
+    }
   },
 
   setSelectedConversation: (conversation) => {
